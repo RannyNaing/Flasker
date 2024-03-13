@@ -8,7 +8,6 @@ from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.widgets import TextArea
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from webforms import LoginForm, UserForm, PostForm, NamerForm, PasswordForm
 
 #Create an instance of Flask
 app = Flask(__name__)
@@ -43,7 +42,23 @@ def load_user(user_id):
 
 
 # ---------------------------------------------------------
+# Create a Blog Post model
+class Posts(db.Model):
+	id = db.Column(db.Integer, primary_key=True)
+	title = db.Column(db.String(225))
+	content = db.Column(db.Text)
+	author = db.Column(db.String(55))
+	date_posted = db.Column(db.DateTime, default=datetime.utcnow)
+	slug = db.Column(db.String(55))
 
+
+# Create a Post Form
+class PostForm(FlaskForm):
+	title = StringField("Title", validators=[DataRequired()])
+	content = TextAreaField("Content", validators=[DataRequired()])
+	author =StringField("Author", validators=[DataRequired()])
+	slug = StringField("Slug", validators=[DataRequired()])
+	submit = SubmitField()
 
 #Add Post Page
 @app.route('/add-post', methods=['GET', 'POST'])
@@ -143,6 +158,57 @@ def get_current_data():
 
 # ---------------------------------------------------------------------------------------
 
+# Create Model
+class Users(db.Model, UserMixin):
+	id = db.Column(db.Integer, primary_key=True)
+	username = db.Column(db.String(20), nullable=False, unique=True)
+	name = db.Column(db.String(200), nullable = False)
+	email = db.Column(db.String(200), nullable= False, unique = True)
+	favorite_color = db.Column(db.String(120))
+	date_added = db.Column(db.DateTime, default=datetime.utcnow)
+	# Do some password stuff
+	password_hash = db.Column(db.String(500))
+
+
+	@property
+	def password(self):
+		raise AttributeError('password is not a readable attribute')
+
+	@password.setter
+	def password(self, password):
+		self.password_hash = generate_password_hash(password)
+
+	def verify_password(self, password):
+		return check_password_hash(self.password_hash, password)
+
+	def __repr__(self):
+		return '<Name %r>' % self.name
+
+
+# Create a Form Class
+class UserForm(FlaskForm):
+	name = StringField("Name", validators=[DataRequired()])
+	username = StringField("Username", validators=[DataRequired()])
+	email = StringField("Email", validators=[DataRequired()])
+	favorite_color = StringField("Favorite Color")
+	password_hash = PasswordField('Password', validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match')])
+	password_hash2 = PasswordField('Confirm Password', validators=[DataRequired()])
+	submit = SubmitField('Submit')
+
+
+# Create a Form Class
+class NamerForm(FlaskForm):
+	name = StringField("What's your name", validators=[DataRequired()])
+	submit = SubmitField('Submit')
+
+# Create a Passowrd Form Class
+class PasswordForm(FlaskForm):
+	email = StringField("What's your Email", validators=[DataRequired()])
+	password_hash = PasswordField("What's your Password", validators=[DataRequired()])
+	submit = SubmitField('Submit')
+
+
+
 
 
 
@@ -150,6 +216,16 @@ def get_current_data():
 
 # Create a route decorator
 @app.route('/')
+# def index():
+# 	return "<h1>Hello World</h1>"
+# Filters
+# safe
+# capitalize
+# lower
+# upper
+# title
+# trim
+# striptags
 def index():
 
 	first_name = "John"
@@ -304,6 +380,11 @@ def test_pw():
 
 
 # -------------------------------------------------------------------
+#Create Login Form
+class LoginForm(FlaskForm):
+	username = StringField("Username", validators=[DataRequired()])
+	password = PasswordField("Password", validators=[DataRequired()])
+	submit = SubmitField("Submit")
 
 
 # Create a Login Page
@@ -364,47 +445,3 @@ def logout():
 	logout_user()
 	flash("You have been Logged Out! Thanks for stopping by")
 	return redirect(url_for('login'))
-
-
-
-
-
-
-# --------------------------------------------------------------
-# Models
-
-# Create a Blog Post model
-class Posts(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
-	title = db.Column(db.String(225))
-	content = db.Column(db.Text)
-	author = db.Column(db.String(55))
-	date_posted = db.Column(db.DateTime, default=datetime.utcnow)
-	slug = db.Column(db.String(55))
-
-
-# Create Model
-class Users(db.Model, UserMixin):
-	id = db.Column(db.Integer, primary_key=True)
-	username = db.Column(db.String(20), nullable=False, unique=True)
-	name = db.Column(db.String(200), nullable = False)
-	email = db.Column(db.String(200), nullable= False, unique = True)
-	favorite_color = db.Column(db.String(120))
-	date_added = db.Column(db.DateTime, default=datetime.utcnow)
-	# Do some password stuff
-	password_hash = db.Column(db.String(500))
-
-
-	@property
-	def password(self):
-		raise AttributeError('password is not a readable attribute')
-
-	@password.setter
-	def password(self, password):
-		self.password_hash = generate_password_hash(password)
-
-	def verify_password(self, password):
-		return check_password_hash(self.password_hash, password)
-
-	def __repr__(self):
-		return '<Name %r>' % self.name

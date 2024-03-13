@@ -37,10 +37,63 @@
 		{{ current_user.favorite_color }}<br>
 		<strong>Date Joined : </strong>
 		{{ current_user.date_added }}<br>
+		<br>
+		<a href="{{ url_for('logout') }}" class="btn btn-primary" >Log Out</a>
+		<a href="{{ url_for('update', id=current_user.id) }}" class="btn btn-secondary" >Update Profile</a>
+		<a href="{{ url_for('delete', id = current_user.id) }}" class="btn btn-danger">Delete</a>
+
   	</div>
 	</div>
 	<br>
 	<br>
-<a href="{{ url_for('logout') }}" class="btn btn-primary" >Log Out</a>
 
+<br><br><br>
+
+<div class="card">
+	
+	<div class="card-body">
+		<h2>Update Profile</h2><hr>
+		<form action="/dashboard" method="POST">
+			{{ form.hidden_tag() }}
+	
+			{{ form.name.label(
+			class="form-label") }}
+	
+			{{ form.name(
+			class="form-control" ,
+			value = name_to_update.name) }}
+			<br>
+	
+			{{ form.username.label(
+			class="form-label") }}
+	
+			{{ form.username(
+			class="form-control" ,
+			value = name_to_update.username) }}
+			<br>
+	
+			{{ form.email.label(
+			class="form-label") }}
+	
+			{{ form.email(
+			class="form-control",
+			value = name_to_update.email) }}
+			<br>
+	
+			{{ form.favorite_color.label(
+			class="form-label") }}
+	
+			{{ form.favorite_color(
+			class="form-control",
+			value = name_to_update.favorite_color) }}
+			<br>
+	
+			{{ form.submit(
+			class="btn btn-secondary") }}
+	
+			<a href="{{ url_for('delete', id = id) }}" class="btn btn-danger">Delete</a>
+	
+		</form>
+</div>
+</div>
 {% endblock %}
