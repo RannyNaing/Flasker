@@ -7,6 +7,7 @@ from flask_migrate import Migrate
 from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.widgets import TextArea
+from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
 
 #Create an instance of Flask
 app = Flask(__name__)
@@ -27,6 +28,16 @@ app.config['SECRET_KEY'] = "super_secret_key"
 db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 app.app_context().push()
+
+
+# Flask Login Stuff
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = 'login'
+
+@login_manager.user_loader
+def load_user(user_id):
+	return Users.query.get(int(user_id))
 
 
 
@@ -51,6 +62,7 @@ class PostForm(FlaskForm):
 
 #Add Post Page
 @app.route('/add-post', methods=['GET', 'POST'])
+# @login_required
 def add_post():
 	form = PostForm()
 
@@ -91,6 +103,7 @@ def post(id):
 
 # Editting Post
 @app.route('/posts/edit/<int:id>', methods=['GET', 'POST'])
+@login_required
 def edit_post(id):
 	post = Posts.query.get_or_404(id)
 	form = PostForm()
@@ -146,8 +159,9 @@ def get_current_data():
 # ---------------------------------------------------------------------------------------
 
 # Create Model
-class Users(db.Model):
+class Users(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
+	username = db.Column(db.String(20), nullable=False, unique=True)
 	name = db.Column(db.String(200), nullable = False)
 	email = db.Column(db.String(200), nullable= False, unique = True)
 	favorite_color = db.Column(db.String(120))
@@ -174,6 +188,7 @@ class Users(db.Model):
 # Create a Form Class
 class UserForm(FlaskForm):
 	name = StringField("Name", validators=[DataRequired()])
+	username = StringField("Username", validators=[DataRequired()])
 	email = StringField("Email", validators=[DataRequired()])
 	favorite_color = StringField("Favorite Color")
 	password_hash = PasswordField('Password', validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match')])
@@ -193,28 +208,7 @@ class PasswordForm(FlaskForm):
 	submit = SubmitField('Submit')
 
 
-# ------------------------------------------------------------------------------------------
 
-@app.route('/user/add', methods=['GET', 'POST'])
-def add_user():
-	name = None
-	form = UserForm()
-	if form.validate_on_submit():
-		user = Users.query.filter_by(email=form.email.data).first()
-		if user is None:
-			#Hash password
-			hashed_pw = generate_password_hash(form.password_hash.data)
-			user = Users(name = form.name.data, email = form.email.data, favorite_color= form.favorite_color.data, password_hash = hashed_pw)
-			db.session.add(user)
-			db.session.commit()
-		name = form.name.data
-		form.name.data=''
-		form.email.data=''
-		form.favorite_color.data=''
-		form.password_hash.data = ''
-		flash("User added Successfully")
-	our_users = Users.query.order_by(Users.date_added)
-	return render_template("add_user.html", form=form, name=name, our_users = our_users)
 
 
 
@@ -286,6 +280,7 @@ def update(id):
 	name_to_update = Users.query.get_or_404(id)
 	if request.method == 'POST':
 		name_to_update.name = request.form['name']
+		name_to_update.username = request.form['username']
 		name_to_update.email = request.form['email']
 		name_to_update.favorite_color = request.form['favorite_color']
 		try:
@@ -305,6 +300,30 @@ def update(id):
 				form = form,
 				name_to_update = name_to_update,
 				id = id)
+# ------------------------------------------------------------------------------------------
+
+@app.route('/user/add', methods=['GET', 'POST'])
+def add_user():
+	name = None
+	form = UserForm()
+	if form.validate_on_submit():
+		user = Users.query.filter_by(email=form.email.data).first()
+		if user is None:
+			#Hash password
+			hashed_pw = generate_password_hash(form.password_hash.data)
+			user = Users(name = form.name.data, username= form.username.data, email = form.email.data, favorite_color= form.favorite_color.data, password_hash = hashed_pw)
+			db.session.add(user)
+			db.session.commit()
+		name = form.name.data
+		form.name.data=''
+		form.username.data=''
+		form.email.data=''
+		form.favorite_color.data=''
+		form.password_hash.data = ''
+		flash("User added Successfully")
+	our_users = Users.query.order_by(Users.date_added)
+	return render_template("add_user.html", form=form, name=name, our_users = our_users)
+
 
 # -------------------------------------------------------------------------------
 
@@ -357,3 +376,47 @@ def test_pw():
 		pw_to_check = pw_to_check,
 		passed = passed,
 		form = form)
+
+
+
+# -------------------------------------------------------------------
+#Create Login Form
+class LoginForm(FlaskForm):
+	username = StringField("Username", validators=[DataRequired()])
+	password = PasswordField("Password", validators=[DataRequired()])
+	submit = SubmitField("Submit")
+
+
+# Create a Login Page
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+	form = LoginForm()
+	if form.validate_on_submit():
+		user = Users.query.filter_by(username=form.username.data).first()
+		if user:
+			# Check hash
+			if check_password_hash(user.password_hash, form.password.data):
+				login_user(user)
+				flash("Login Successfully")
+				return redirect(url_for('dashboard'))
+			else:
+				flash("Wrong Password - Try Again!")
+		else:
+			flash("That User Does not Exist!!! Please Try Again.")
+
+	return render_template('login.html', form=form)
+
+
+# Create a Login Page
+@app.route('/dashboard', methods=['GET', 'POST'])
+@login_required
+def dashboard():
+	return render_template('dashboard.html')
+
+# Create Logout
+@app.route('/logout', methods=['GET', 'POST'])
+@login_required
+def logout():
+	logout_user()
+	flash("You have been Logged Out! Thanks for stopping by")
+	return redirect(url_for('login'))
