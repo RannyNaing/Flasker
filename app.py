@@ -26,8 +26,8 @@ ckeditor = CKEditor(app)
 
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
-app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
-# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://uqugffbuzdsofw:9c7fe3728694b3987efc5142cd9842b8c22652dc15f46f104883e47e2e7d7dbf@ec2-3-230-24-12.compute-1.amazonaws.com:5432/d3e1v5cm24b6qs"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://uqugffbuzdsofw:9c7fe3728694b3987efc5142cd9842b8c22652dc15f46f104883e47e2e7d7dbf@ec2-3-230-24-12.compute-1.amazonaws.com:5432/d3e1v5cm24b6qs"
 
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
