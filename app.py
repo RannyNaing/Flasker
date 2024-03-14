@@ -26,8 +26,8 @@ ckeditor = CKEditor(app)
 
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://uqugffbuzdsofw:9c7fe3728694b3987efc5142cd9842b8c22652dc15f46f104883e47e2e7d7dbf@ec2-3-230-24-12.compute-1.amazonaws.com:5432/d3e1v5cm24b6qs"
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://uqugffbuzdsofw:9c7fe3728694b3987efc5142cd9842b8c22652dc15f46f104883e47e2e7d7dbf@ec2-3-230-24-12.compute-1.amazonaws.com:5432/d3e1v5cm24b6qs"
 
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
@@ -113,7 +113,7 @@ def edit_post(id):
 		db.session.commit()
 		flash("Post Has Been Updated")
 		return redirect(url_for('post', id = post.id))
-	if current_user.id == post.poster_id:
+	if current_user.id == post.poster_id or id == 1:
 		form.title.data = post.title
 		# form.author.data = post.author
 		form.slug.data = post.slug
@@ -130,7 +130,7 @@ def edit_post(id):
 def delete_post(id):
 	post_to_delete = Posts.query.get_or_404(id)
 	id = current_user.id
-	if id == post_to_delete.poster.id:
+	if id == post_to_delete.poster.id or id == 1:
 		try:
 			db.session.delete(post_to_delete)
 			db.session.commit()
@@ -283,21 +283,24 @@ def add_user():
 
 # Delete Users
 @app.route('/delete/<int:id>')
+@login_required
 def delete(id):
-	user_to_delete = Users.query.get_or_404(id)
-	name = None
-	form = UserForm()
-	try:
-		db.session.delete(user_to_delete)
-		db.session.commit()
-		flash("User Deleted Successfully")
-		our_users = Users.query.order_by(Users.date_added)
-		return render_template("add_user.html", form=form, name=name, our_users = our_users)
-	except:
-		flash("Whoops!!! There was a problem deleting the user")
-		return render_template("add_user.html", form=form, name=name, our_users = our_users)
-
-
+	if id == current_user:
+		user_to_delete = Users.query.get_or_404(id)
+		name = None
+		form = UserForm()
+		try:
+			db.session.delete(user_to_delete)
+			db.session.commit()
+			flash("User Deleted Successfully")
+			our_users = Users.query.order_by(Users.date_added)
+			return render_template("add_user.html", form=form, name=name, our_users = our_users)
+		except:
+			flash("Whoops!!! There was a problem deleting the user")
+			return render_template("add_user.html", form=form, name=name, our_users = our_users)
+	else:
+		flash("Sorry, You can't delete that user!")
+		return redirect(url_for('dashboard'))
 
 # --------------------------------------------
 
@@ -370,7 +373,6 @@ def dashboard():
 		name_to_update.username = request.form['username']
 		name_to_update.about_author = request.form['about_author']
 		
-
 		# Check for profile pic
 		if request.files['profile_pic']:
 			name_to_update.profile_pic = request.files['profile_pic']
