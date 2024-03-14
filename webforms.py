@@ -1,8 +1,8 @@
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, TextAreaField
 from wtforms.validators import DataRequired, EqualTo, Length
-
-
+from flask_ckeditor import CKEditorField
+from flask_wtf.file import FileField
 
 
 
@@ -17,8 +17,10 @@ class LoginForm(FlaskForm):
 # Create a Post Form
 class PostForm(FlaskForm):
 	title = StringField("Title", validators=[DataRequired()])
-	content = TextAreaField("Content", validators=[DataRequired()])
-	author =StringField("Author", validators=[DataRequired()])
+	# content = TextAreaField("Content", validators=[DataRequired()])
+	content = CKEditorField('Content', validators=[DataRequired()])
+
+	# author =StringField("Author")
 	slug = StringField("Slug", validators=[DataRequired()])
 	submit = SubmitField()
 	
@@ -31,8 +33,10 @@ class UserForm(FlaskForm):
 	username = StringField("Username", validators=[DataRequired()])
 	email = StringField("Email", validators=[DataRequired()])
 	favorite_color = StringField("Favorite Color")
+	about_author = TextAreaField("About Author")
 	password_hash = PasswordField('Password', validators=[DataRequired(), EqualTo('password_hash2', message='Passwords Must Match')])
 	password_hash2 = PasswordField('Confirm Password', validators=[DataRequired()])
+	profile_pic = FileField("Profile Pic")
 	submit = SubmitField('Submit')
 
 
@@ -45,4 +49,10 @@ class NamerForm(FlaskForm):
 class PasswordForm(FlaskForm):
 	email = StringField("What's your Email", validators=[DataRequired()])
 	password_hash = PasswordField("What's your Password", validators=[DataRequired()])
+	submit = SubmitField('Submit')
+
+
+# Create a Search Form
+class SearchForm(FlaskForm):
+	searched = StringField("Searched", validators=[DataRequired()])
 	submit = SubmitField('Submit')

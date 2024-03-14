@@ -8,10 +8,16 @@ from datetime import datetime, date
 from werkzeug.security import generate_password_hash, check_password_hash
 from wtforms.widgets import TextArea
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from webforms import LoginForm, UserForm, PostForm, NamerForm, PasswordForm
+from webforms import LoginForm, UserForm, PostForm, NamerForm, PasswordForm, SearchForm
+from flask_ckeditor import CKEditor
+from werkzeug.utils import secure_filename
+import uuid as uuid
+import os
 
 #Create an instance of Flask
 app = Flask(__name__)
+# CK Editor
+ckeditor = CKEditor(app)
 # Add database
 
 
@@ -24,6 +30,9 @@ app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our
 
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
+
+UPLOAD_FOLDER = 'static/images'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Initialize database
 db = SQLAlchemy(app)
@@ -52,13 +61,14 @@ def add_post():
 	form = PostForm()
 
 	if form.validate_on_submit():
+		poster = current_user.id
 		post = Posts(title= form.title.data,
 			content = form.content.data,
-			author = form.author.data,
+			poster_id = poster,
 			slug = form.slug.data)
 		form.title.data = ''
 		form.content.data = ''
-		form.author.data = ''
+		# form.author.data = ''
 		form.slug.data = ''
 
 		# Add data to database
@@ -94,7 +104,7 @@ def edit_post(id):
 	form = PostForm()
 	if form.validate_on_submit():
 		post.title = form.title.data
-		post.author = form.author.data
+		# post.author = form.author.data
 		post.slug = form.slug.data
 		post.content = form.content.data
 		# Update database
@@ -102,34 +112,45 @@ def edit_post(id):
 		db.session.commit()
 		flash("Post Has Been Updated")
 		return redirect(url_for('post', id = post.id))
-	form.title.data = post.title
-	form.author.data = post.author
-	form.slug.data = post.slug
-	form.content.data = post.content
-	return render_template('edit_post.html', form = form)
+	if current_user.id == post.poster_id:
+		form.title.data = post.title
+		# form.author.data = post.author
+		form.slug.data = post.slug
+		form.content.data = post.content
+		return render_template('edit_post.html', form = form)
+	else:
+		flash("You Aren't Authorzed to Edit This Post")
+		posts = Posts.query.order_by(Posts.date_posted)
+		return render_template("posts.html", posts = posts)
 
 # Delete Post
 @app.route('/posts/delete/<int:id>')
+@login_required
 def delete_post(id):
 	post_to_delete = Posts.query.get_or_404(id)
+	id = current_user.id
+	if id == post_to_delete.poster.id:
+		try:
+			db.session.delete(post_to_delete)
+			db.session.commit()
 
-	try:
-		db.session.delete(post_to_delete)
-		db.session.commit()
+			#Return Message
+			flash("Blog Post was DELETED")
 
-		#Return Message
-		flash("Blog Post was DELETED")
-
-		posts = Posts.query.order_by(Posts.date_posted)
-		return render_template("posts.html", posts = posts)
-	except:
-		# Return Error message
-		flash("There was a problem deleting post. Try again....")
+			posts = Posts.query.order_by(Posts.date_posted)
+			return render_template("posts.html", posts = posts)
+		except:
+			# Return Error message
+			flash("There was a problem deleting post. Try again....")
+			posts = Posts.query.order_by(Posts.date_posted)
+			return render_template("posts.html", posts = posts)
+	else:
+		flash("You are not authorized to Delete That Post. Try again....")
 		posts = Posts.query.order_by(Posts.date_posted)
 		return render_template("posts.html", posts = posts)
 
 # ------------------------------------------------------------
-
+##########################################
 # JSON Thing
 @app.route('/date')
 def get_current_data():
@@ -140,7 +161,7 @@ def get_current_data():
 	}
 	return favorite_pizza
 	return {"Date": date.today()}
-
+#########################################
 # ---------------------------------------------------------------------------------------
 
 
@@ -159,11 +180,15 @@ def index():
 	return render_template("index.html", first_name = first_name,
 		stuff = stuff,
 		favorite_pizza = favorite_pizza)
+
+#################################
 # -----------------------------------------------------------------------
+################################
 # localhost:5000/user/john
 @app.route('/user/<name>')
 def user(name):
 	return render_template("user.html", user_name = name)
+###################################
 # ----------------------------------------------------------------------
 
 # Create Custom Error Page
@@ -179,7 +204,7 @@ def page_not_found(e):
 	return render_template("500.html"), 500
 
 # ----------------------------------------------------------------------------
-
+#########################
 # Create Name Page
 @app.route('/name', methods=['GET', 'POST'])
 def name():
@@ -194,11 +219,12 @@ def name():
 	return render_template('name.html', 
 		name = name, 
 		form = form)
-
+##################################
 # -------------------------------------------------------------------------------------
 
-# Update Database Record
+# Update Database Record of the User
 @app.route('/update/<int:id>', methods=['POST', 'GET'])
+@login_required
 def update(id):
 	form = UserForm()
 	name_to_update = Users.query.get_or_404(id)
@@ -224,8 +250,11 @@ def update(id):
 				form = form,
 				name_to_update = name_to_update,
 				id = id)
+
+
 # ------------------------------------------------------------------------------------------
 
+# Add User
 @app.route('/user/add', methods=['GET', 'POST'])
 def add_user():
 	name = None
@@ -326,35 +355,59 @@ def login():
 	return render_template('login.html', form=form)
 
 
-# Create a Login Page
+# Create Dashboard Page
 @app.route('/dashboard', methods=['GET', 'POST'])
 @login_required
 def dashboard():
 	form = UserForm()
 	id = current_user.id
 	name_to_update = Users.query.get_or_404(id)
-	if request.method == 'POST':
+	if request.method == "POST":
 		name_to_update.name = request.form['name']
-		name_to_update.username = request.form['username']
 		name_to_update.email = request.form['email']
 		name_to_update.favorite_color = request.form['favorite_color']
-		try:
+		name_to_update.username = request.form['username']
+		name_to_update.about_author = request.form['about_author']
+		
+
+		# Check for profile pic
+		if request.files['profile_pic']:
+			name_to_update.profile_pic = request.files['profile_pic']
+
+			# Grab Image Name
+			pic_filename = secure_filename(name_to_update.profile_pic.filename)
+			# Set UUID
+			pic_name = str(uuid.uuid1()) + "_" + pic_filename
+			# Save That Image
+			saver = request.files['profile_pic']
+			
+
+			# Change it to a string to save to db
+			name_to_update.profile_pic = pic_name
+			try:
+				db.session.commit()
+				saver.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
+				flash("User Updated Successfully!")
+				return render_template("dashboard.html", 
+					form=form,
+					name_to_update = name_to_update)
+			except:
+				flash("Error!  Looks like there was a problem...try again!")
+				return render_template("dashboard.html", 
+					form=form,
+					name_to_update = name_to_update)
+		else:
 			db.session.commit()
-			flash("User Updated Successfully")
-			return render_template("dashboard.html",
-				form = form,
+			flash("User Updated Successfully!")
+			return render_template("dashboard.html", 
+				form=form, 
 				name_to_update = name_to_update)
-		except:
-			flash("Error! Looks like there was an error")
-			return render_template("dashboard.html",
-				form = form,
-				name_to_update = name_to_update,
-				id = id)
 	else:
-		return render_template("dashboard.html",
-				form = form,
+		return render_template("dashboard.html", 
+				form=form,
 				name_to_update = name_to_update,
 				id = id)
+
 	return render_template('dashboard.html')
 
 # Create Logout
@@ -366,9 +419,49 @@ def logout():
 	return redirect(url_for('login'))
 
 
+# --------------------------------------------------------------
+
+#Pass Stuff to NavBar
+
+@app.context_processor
+def base():
+	form = SearchForm()
+	return dict(form=form)
 
 
+#Create Search Function
 
+@app.route('/search', methods=['POST'])
+def search():
+	form = SearchForm()
+	posts = Posts.query
+	if form.validate_on_submit():
+		# Get data from submitted form
+		post.searched = form.searched.data
+
+		#Query the database
+		posts = posts.filter(Posts.content.like('%' + post.searched +'%'))
+		posts = posts.order_by(Posts.title).all()
+
+		return render_template('search.html', 
+			form=form, 
+			searched = post.searched,
+			posts = posts)
+
+# -----------------------------------------------------
+
+# Create Admin Page
+
+# Create a route decorator
+@app.route('/admin')
+@login_required
+def admin():
+	id = current_user.id
+	if id == 1:
+		return render_template("admin.html")
+	else:
+		flash("Sorry must be admin to access the Admin page")
+		return redirect(url_for('dashboard'))
 
 # --------------------------------------------------------------
 # Models
@@ -378,9 +471,11 @@ class Posts(db.Model):
 	id = db.Column(db.Integer, primary_key=True)
 	title = db.Column(db.String(225))
 	content = db.Column(db.Text)
-	author = db.Column(db.String(55))
+	# author = db.Column(db.String(55))
 	date_posted = db.Column(db.DateTime, default=datetime.utcnow)
 	slug = db.Column(db.String(55))
+	# Foreign Key to Link Users (refer to primary key of the user)
+	poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
 
 # Create Model
@@ -390,9 +485,14 @@ class Users(db.Model, UserMixin):
 	name = db.Column(db.String(200), nullable = False)
 	email = db.Column(db.String(200), nullable= False, unique = True)
 	favorite_color = db.Column(db.String(120))
+	about_author = db.Column(db.Text(500), nullable=True)
 	date_added = db.Column(db.DateTime, default=datetime.utcnow)
+	profile_pic = db.Column(db.String(255), nullable=True)
 	# Do some password stuff
 	password_hash = db.Column(db.String(500))
+	# User Can Have Many Posts
+	posts = db.relationship('Posts', backref='poster')
+
 
 
 	@property
