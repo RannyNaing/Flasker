@@ -152,17 +152,6 @@ def delete_post(id):
 
 # ------------------------------------------------------------
 ##########################################
-# JSON Thing
-@app.route('/date')
-def get_current_data():
-	favorite_pizza = {
-		"John":"Pepperoni",
-		"Mary":"Cheese",
-		"Tim": "Mushrooms"
-	}
-	return favorite_pizza
-	return {"Date": date.today()}
-#########################################
 # ---------------------------------------------------------------------------------------
 
 
@@ -173,18 +162,10 @@ def get_current_data():
 # Create a route decorator
 @app.route('/')
 def index():
-
-	first_name = "John"
-	stuff = "This is bold Text"
-
-	favorite_pizza =["Pepperoni", "Cheese", "Mushrooms", 41]
-	return render_template("index.html", first_name = first_name,
-		stuff = stuff,
-		favorite_pizza = favorite_pizza)
+	return render_template("index.html")
 
 #################################
 # -----------------------------------------------------------------------
-################################
 # localhost:5000/user/john
 @app.route('/user/<name>')
 def user(name):
