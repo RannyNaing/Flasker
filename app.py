@@ -27,6 +27,8 @@ ckeditor = CKEditor(app)
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
 app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+app.config['SQLALCHEMY_DATABASE_URI'] = "postgres://yijxhdkkbemqsi:20515cc2890b20771c556375117e3c61a78ae475a2f6628e976759705b9e32d8@ec2-107-21-67-46.compute-1.amazonaws.com:5432/dbl28gfscq7ur"
+
 
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
@@ -485,7 +487,7 @@ class Users(db.Model, UserMixin):
 	name = db.Column(db.String(200), nullable = False)
 	email = db.Column(db.String(200), nullable= False, unique = True)
 	favorite_color = db.Column(db.String(120))
-	about_author = db.Column(db.Text(500), nullable=True)
+	about_author = db.Column(db.Text(), nullable=True)
 	date_added = db.Column(db.DateTime, default=datetime.utcnow)
 	profile_pic = db.Column(db.String(255), nullable=True)
 	# Do some password stuff
