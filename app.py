@@ -13,6 +13,9 @@ from flask_ckeditor import CKEditor
 from werkzeug.utils import secure_filename
 import uuid as uuid
 import os
+from flask import jsonify, request
+
+
 
 #Create an instance of Flask
 app = Flask(__name__)
@@ -54,6 +57,20 @@ def load_user(user_id):
 
 # ---------------------------------------------------------
 
+# Simple API to get posts and add a new post
+@app.route('/api/posts', methods=['GET', 'POST'])
+def api_posts():
+    if request.method == 'POST':
+        # Assume JSON data contains 'title' and 'content'
+        data = request.json
+        new_post = Posts(title=data['title'], content=data['content'], poster_id=1)  # Simplified example
+        db.session.add(new_post)
+        db.session.commit()
+        return jsonify({'message': 'Post created', 'post': {'title': data['title'], 'content': data['content']}}), 201
+
+    posts = Posts.query.all()
+    posts_data = [{'title': post.title, 'content': post.content} for post in posts]
+    return jsonify(posts_data)
 
 #Add Post Page
 @app.route('/add-post', methods=['GET', 'POST'])
@@ -266,7 +283,7 @@ def add_user():
 @app.route('/delete/<int:id>')
 @login_required
 def delete(id):
-	if id == current_user:
+	if id == current_user.id:
 		user_to_delete = Users.query.get_or_404(id)
 		name = None
 		form = UserForm()
