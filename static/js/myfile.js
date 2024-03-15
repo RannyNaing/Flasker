@@ -1,1 +1,0 @@
-document.getElementById('demo').innerHTML = "This is created with Javascript"
