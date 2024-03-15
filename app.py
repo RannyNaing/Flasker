@@ -143,7 +143,7 @@ def edit_post(id):
 		db.session.commit()
 		flash("Post Has Been Updated")
 		return redirect(url_for('post', id = post.id))
-	if current_user.id == post.poster_id or id == 1:
+	if current_user.id == post.poster_id or current_user.id == 1:
 		form.title.data = post.title
 		# form.author.data = post.author
 		form.slug.data = post.slug
@@ -160,7 +160,7 @@ def edit_post(id):
 def delete_post(id):
 	post_to_delete = Posts.query.get_or_404(id)
 	id = current_user.id
-	if id == post_to_delete.poster.id or id == 1:
+	if post_to_delete.poster is None or id == post_to_delete.poster.id or id == 1:
 		try:
 			db.session.delete(post_to_delete)
 			db.session.commit()
@@ -328,34 +328,34 @@ def delete(id):
 # --------------------------------------------
 
 # Create Password Test Page
-@app.route('/test_pw', methods=['GET', 'POST'])
-def test_pw():
-	email = None
-	password = None
-	pw_to_check = None
-	passed = None
-	form = PasswordForm()
-	if form.validate_on_submit():
-		email = form.email.data
-		password = form.password_hash.data
-		# Clear the form
-		form.email.data = ''
-		form.password_hash.data = ''
-		# flash("Form Submitted Successfully")
+# @app.route('/test_pw', methods=['GET', 'POST'])
+# def test_pw():
+# 	email = None
+# 	password = None
+# 	pw_to_check = None
+# 	passed = None
+# 	form = PasswordForm()
+# 	if form.validate_on_submit():
+# 		email = form.email.data
+# 		password = form.password_hash.data
+# 		# Clear the form
+# 		form.email.data = ''
+# 		form.password_hash.data = ''
+# 		# flash("Form Submitted Successfully")
 
-		# Look up User by Email address
-		pw_to_check = Users.query.filter_by(email=email).first()
+# 		# Look up User by Email address
+# 		pw_to_check = Users.query.filter_by(email=email).first()
 
-		# Check hashed Password
-		passed = check_password_hash(pw_to_check.password_hash, password)
+# 		# Check hashed Password
+# 		passed = check_password_hash(pw_to_check.password_hash, password)
 
 
-	return render_template('test_pw.html', 
-		email = email, 
-		password = password,
-		pw_to_check = pw_to_check,
-		passed = passed,
-		form = form)
+# 	return render_template('test_pw.html', 
+# 		email = email, 
+# 		password = password,
+# 		pw_to_check = pw_to_check,
+# 		passed = passed,
+# 		form = form)
 
 
 
@@ -434,7 +434,6 @@ def dashboard():
 				name_to_update = name_to_update,
 				id = id)
 
-	return render_template('dashboard.html')
 
 # Create Logout
 @app.route('/logout', methods=['GET', 'POST'])

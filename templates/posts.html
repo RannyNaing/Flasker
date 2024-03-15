@@ -15,8 +15,12 @@
 {% for post in posts %}
 <div class="alert alert-success alert-dismissible fade show" role="alert">
     <h2><a href="{{ url_for('post', id=post.id) }}">{{post.title }}</a></h2><br>
-    By: {{post.poster.name }}<br>
-    <small>Date: {{post.date_posted }}</small><br><br>
+    {% if post.poster %}
+		<small>By: {{ post.poster.name }} </small><br/>
+	{% else %}
+		<small>By: Blog Poster Unknown or Account Deleted</small><br>
+	{% endif %}
+	<small>Date: {{ post.date_posted }}</small> <br/><br/>
     <div class="alert alert-success alert-dismissible fade show" role="alert">
     {{post.content |safe }}</div>
     <br>
