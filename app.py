@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, request, redirect, url_for
+from flask import Flask, render_template, flash, request, redirect, url_for, jsonify
 from flask_wtf import FlaskForm
 from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, TextAreaField
 from wtforms.validators import DataRequired, EqualTo, Length
@@ -13,7 +13,6 @@ from flask_ckeditor import CKEditor
 from werkzeug.utils import secure_filename
 import uuid as uuid
 import os
-from flask import jsonify, request
 
 
 
@@ -23,13 +22,14 @@ app = Flask(__name__)
 ckeditor = CKEditor(app)
 # Add database
 
-
 # Old SQLite DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "sqlite:///users.db"
 
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+
+# Heroku Postgressql
 app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://exxzdfhdskiddh:f75c935919f02f071192e38961ecd83368ec508a8533cd214ee37bd3680c50a1@ec2-44-220-7-157.compute-1.amazonaws.com:5432/d261tl97dqem1o"
 
 # Secret Key!!
@@ -55,6 +55,16 @@ def load_user(user_id):
 
 
 
+# ----------------------------------------------------------------------------------------
+# Home Page
+# Create a route decorator
+@app.route('/')
+def index():
+	return render_template("index.html")
+
+#################################
+
+
 # ---------------------------------------------------------
 
 # Simple API to get posts and add a new post
@@ -63,7 +73,7 @@ def api_posts():
     if request.method == 'POST':
         # Assume JSON data contains 'title' and 'content'
         data = request.json
-        new_post = Posts(title=data['title'], content=data['content'], poster_id=1)  # Simplified example
+        new_post = Posts(title=data['title'], content=data['content'], poster_id=current_user.id)  # Simplified example
         db.session.add(new_post)
         db.session.commit()
         return jsonify({'message': 'Post created', 'post': {'title': data['title'], 'content': data['content']}}), 201
@@ -72,9 +82,12 @@ def api_posts():
     posts_data = [{'title': post.title, 'content': post.content} for post in posts]
     return jsonify(posts_data)
 
+# ------------------------------------------------------------
+# Posts
+
 #Add Post Page
 @app.route('/add-post', methods=['GET', 'POST'])
-# @login_required
+@login_required
 def add_post():
 	form = PostForm()
 
@@ -169,21 +182,8 @@ def delete_post(id):
 
 # ------------------------------------------------------------
 ##########################################
-# ---------------------------------------------------------------------------------------
-
-
-
-
-# ----------------------------------------------------------------------------------------
-
-# Create a route decorator
-@app.route('/')
-def index():
-	return render_template("index.html")
-
-#################################
 # -----------------------------------------------------------------------
-# localhost:5000/user/john
+# localhost:5000/user/
 @app.route('/user/<name>')
 def user(name):
 	return render_template("user.html", user_name = name)
@@ -199,7 +199,7 @@ def page_not_found(e):
 
 #Internal Server Error
 @app.errorhandler(500)
-def page_not_found(e):
+def internal_server_error(e):
 	return render_template("500.html"), 500
 
 # ----------------------------------------------------------------------------
@@ -434,20 +434,20 @@ def base():
 
 @app.route('/search', methods=['POST'])
 def search():
-	form = SearchForm()
-	posts = Posts.query
-	if form.validate_on_submit():
-		# Get data from submitted form
-		post.searched = form.searched.data
+    form = SearchForm()
+    if form.validate_on_submit():
+        searched = form.searched.data
+        # Using case-insensitive search across title and content fields
+        posts = Posts.query.filter(db.or_(
+            Posts.title.ilike(f'%{searched}%'),
+            Posts.content.ilike(f'%{searched}%')
+        )).order_by(Posts.date_posted.desc()).all()
 
-		#Query the database
-		posts = posts.filter(Posts.content.like('%' + post.searched +'%'))
-		posts = posts.order_by(Posts.title).all()
+        return render_template('search.html',
+            form=form,
+            searched=searched,
+            posts=posts)
 
-		return render_template('search.html', 
-			form=form, 
-			searched = post.searched,
-			posts = posts)
 
 # -----------------------------------------------------
 

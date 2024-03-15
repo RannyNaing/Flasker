@@ -1,38 +1,32 @@
 {% extends 'base.html' %}
 {% block content %}
 
-	<br>
-	<h2>You searched for: <em>{{ searched }}</em></h2>
-	<br>
-	<br>
-	<br>
+<br>
+<h2>You searched for: <em>{{ searched }}</em></h2>
+<br>
+<br>
+<br>
 
-	{% if posts %}
-		{% for post in posts %}
-			<div class="alert alert-success alert-dismissible fade show" role="alert">
-			    <h2><a href="{{ url_for('post', id=post.id) }}">{{post.title }}</a></h2><br>
-			    By: {{post.poster.name }}<br>
-			    <small>Date: {{post.date_posted }}</small><br><br>
-			    <div class="alert alert-success alert-dismissible fade show" role="alert">
-			    {{post.content |safe }}</div>
-			    <br>
-			    <a href="{{ url_for('post', id=post.id) }}" class="btn btn-outline-secondary">View Post</a>
-			    {% if post.poster_id == current_user.id %}
-			        <a href="{{ url_for('edit_post', id=post.id) }}" class="btn btn-outline-dark">Edit Post</a>
-			        <a href="{{ url_for('delete_post', id = post.id) }}" class="btn btn-outline-danger">Delete Post</a>
-			    {% endif %}
-			</div>
-			<br><br>
-		{% endfor %}
-	{% else %}
-		<h4>Sorry, your search term: <strong>{{ searched }}</strong>
-		was not found.</h4>
-	{% endif %}
-
-
-
-
-
-
+{% if posts %}
+    {% for post in posts %}
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <h2><a href="{{ url_for('post', id=post.id) }}">{{ post.title | replace(searched, '<mark>' + searched + '</mark>') | safe }}</a></h2><br>
+            By: {{ post.poster.name }}<br>
+            <small>Date: {{ post.date_posted }}</small><br><br>
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+            {{ post.content | replace(searched, '<mark>' + searched + '</mark>') | safe }}</div>
+            <br>
+            <a href="{{ url_for('post', id=post.id) }}" class="btn btn-outline-secondary">View Post</a>
+            {% if post.poster_id == current_user.id %}
+                <a href="{{ url_for('edit_post', id=post.id) }}" class="btn btn-outline-dark">Edit Post</a>
+                <a href="{{ url_for('delete_post', id = post.id) }}" class="btn btn-outline-danger">Delete Post</a>
+            {% endif %}
+        </div>
+        <br><br>
+    {% endfor %}
+{% else %}
+    <h4>Sorry, your search term: <strong>{{ searched }}</strong>
+    was not found.</h4>
+{% endif %}
 
 {% endblock %}
