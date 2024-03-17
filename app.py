@@ -1,20 +1,14 @@
 from flask import Flask, render_template, flash, request, redirect, url_for, jsonify
-from flask_wtf import FlaskForm
-from wtforms import StringField, SubmitField, PasswordField, BooleanField, ValidationError, TextAreaField
-from wtforms.validators import DataRequired, EqualTo, Length
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
-from datetime import datetime, date
+from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from wtforms.widgets import TextArea
 from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from webforms import LoginForm, UserForm, PostForm, NamerForm, PasswordForm, SearchForm
+from webforms import LoginForm, UserForm, PostForm, SearchForm
 from flask_ckeditor import CKEditor
 from werkzeug.utils import secure_filename
 import uuid as uuid
 import os
-
-
 
 #Create an instance of Flask
 app = Flask(__name__)
@@ -43,7 +37,6 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db)
 app.app_context().push()
 
-
 # Flask Login Stuff
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -53,19 +46,15 @@ login_manager.login_view = 'login'
 def load_user(user_id):
 	return Users.query.get(int(user_id))
 
-
-
 # ----------------------------------------------------------------------------------------
+
 # Home Page
 # Create a route decorator
 @app.route('/')
 def index():
 	return render_template("index.html")
 
-#################################
-
-
-# ---------------------------------------------------------
+# -----------------------------------------------------------------------------------------
 
 # Simple API to get posts and add a new post
 @app.route('/api/posts', methods=['GET', 'POST'])
@@ -77,20 +66,31 @@ def api_posts():
         db.session.add(new_post)
         db.session.commit()
         return jsonify({'message': 'Post created', 'post': {'title': data['title'], 'content': data['content']}}), 201
-
     posts = Posts.query.all()
     posts_data = [{'title': post.title, 'content': post.content} for post in posts]
     return jsonify(posts_data)
 
 # ------------------------------------------------------------
-# Posts
+# Blog Posts
+
+# Blog Posts Pge
+@app.route('/posts')
+def posts():
+	# Grab all the posts from database
+	posts = Posts.query.order_by(Posts.date_posted)
+	return render_template("posts.html", posts = posts)
+
+# Individual Blog Post
+@app.route('/posts/<int:id>')
+def post(id):
+	post = Posts.query.get_or_404(id)
+	return render_template('post.html', post = post)
 
 #Add Post Page
 @app.route('/add-post', methods=['GET', 'POST'])
 @login_required
 def add_post():
 	form = PostForm()
-
 	if form.validate_on_submit():
 		poster = current_user.id
 		post = Posts(title= form.title.data,
@@ -99,33 +99,14 @@ def add_post():
 			slug = form.slug.data)
 		form.title.data = ''
 		form.content.data = ''
-		# form.author.data = ''
 		form.slug.data = ''
-
 		# Add data to database
-
 		db.session.add(post)
 		db.session.commit()
-
 		#Return a Message
 		flash("Blog Post Submitted Successfully")
-
 	# Redirect to the webpae
 	return render_template("add_post.html", form = form)
-
-# Blog Posts Pge
-@app.route('/posts')
-def posts():
-	# Grab all the posts from database
-	posts = Posts.query.order_by(Posts.date_posted)
-
-	return render_template("posts.html", posts = posts)
-
-# Individual Blog Post
-@app.route('/posts/<int:id>')
-def post(id):
-	post = Posts.query.get_or_404(id)
-	return render_template('post.html', post = post)
 
 # Editting Post
 @app.route('/posts/edit/<int:id>', methods=['GET', 'POST'])
@@ -164,10 +145,8 @@ def delete_post(id):
 		try:
 			db.session.delete(post_to_delete)
 			db.session.commit()
-
 			#Return Message
 			flash("Blog Post was DELETED")
-
 			posts = Posts.query.order_by(Posts.date_posted)
 			return render_template("posts.html", posts = posts)
 		except:
@@ -180,46 +159,7 @@ def delete_post(id):
 		posts = Posts.query.order_by(Posts.date_posted)
 		return render_template("posts.html", posts = posts)
 
-# ------------------------------------------------------------
-##########################################
-# -----------------------------------------------------------------------
-# localhost:5000/user/
-@app.route('/user/<name>')
-def user(name):
-	return render_template("user.html", user_name = name)
-###################################
-# ----------------------------------------------------------------------
-
-# Create Custom Error Page
-
-#Invalid Error
-@app.errorhandler(404)
-def page_not_found(e):
-	return render_template("404.html"), 404
-
-#Internal Server Error
-@app.errorhandler(500)
-def internal_server_error(e):
-	return render_template("500.html"), 500
-
 # ----------------------------------------------------------------------------
-#########################
-# Create Name Page
-@app.route('/name', methods=['GET', 'POST'])
-def name():
-	name = None
-	form = NamerForm()
-	if form.validate_on_submit():
-		name = form.name.data
-		form.name.data = ''
-		flash("Form Submitted Successfully")
-
-
-	return render_template('name.html', 
-		name = name, 
-		form = form)
-##################################
-# -------------------------------------------------------------------------------------
 
 # Update Database Record of the User
 @app.route('/update/<int:id>', methods=['POST', 'GET'])
@@ -234,19 +174,15 @@ def update(id):
 		name_to_update.favorite_color = request.form['favorite_color']
 		name_to_update.username = request.form['username']
 		name_to_update.about_author = request.form['about_author']
-		
 		# Check for profile pic
 		if request.files['profile_pic']:
 			name_to_update.profile_pic = request.files['profile_pic']
-
 			# Grab Image Name
 			pic_filename = secure_filename(name_to_update.profile_pic.filename)
 			# Set UUID
 			pic_name = str(uuid.uuid1()) + "_" + pic_filename
 			# Save That Image
 			saver = request.files['profile_pic']
-			
-
 			# Change it to a string to save to db
 			name_to_update.profile_pic = pic_name
 			try:
@@ -273,9 +209,6 @@ def update(id):
 				name_to_update = name_to_update,
 				id = id)
 
-	return render_template('update.html')
-
-
 # ------------------------------------------------------------------------------------------
 
 # Add User
@@ -288,7 +221,9 @@ def add_user():
 		if user is None:
 			#Hash password
 			hashed_pw = generate_password_hash(form.password_hash.data)
-			user = Users(name = form.name.data, username= form.username.data, email = form.email.data, favorite_color= form.favorite_color.data, password_hash = hashed_pw)
+			user = Users(name = form.name.data, username= form.username.data, 
+							email = form.email.data, favorite_color= form.favorite_color.data, 
+							password_hash = hashed_pw)
 			db.session.add(user)
 			db.session.commit()
 		name = form.name.data
@@ -300,9 +235,6 @@ def add_user():
 		flash("User added Successfully")
 	our_users = Users.query.order_by(Users.date_added)
 	return render_template("add_user.html", form=form, name=name, our_users = our_users)
-
-
-# -------------------------------------------------------------------------------
 
 # Delete Users
 @app.route('/delete/<int:id>')
@@ -325,41 +257,7 @@ def delete(id):
 		flash("Sorry, You can't delete that user!")
 		return redirect(url_for('dashboard'))
 
-# --------------------------------------------
-
-# Create Password Test Page
-# @app.route('/test_pw', methods=['GET', 'POST'])
-# def test_pw():
-# 	email = None
-# 	password = None
-# 	pw_to_check = None
-# 	passed = None
-# 	form = PasswordForm()
-# 	if form.validate_on_submit():
-# 		email = form.email.data
-# 		password = form.password_hash.data
-# 		# Clear the form
-# 		form.email.data = ''
-# 		form.password_hash.data = ''
-# 		# flash("Form Submitted Successfully")
-
-# 		# Look up User by Email address
-# 		pw_to_check = Users.query.filter_by(email=email).first()
-
-# 		# Check hashed Password
-# 		passed = check_password_hash(pw_to_check.password_hash, password)
-
-
-# 	return render_template('test_pw.html', 
-# 		email = email, 
-# 		password = password,
-# 		pw_to_check = pw_to_check,
-# 		passed = passed,
-# 		form = form)
-
-
-
-# -------------------------------------------------------------------
+# --------------------------------------------------------------------------------------------
 
 
 # Create a Login Page
@@ -378,7 +276,6 @@ def login():
 				flash("Wrong Password - Try Again!")
 		else:
 			flash("That User Does not Exist!!! Please Try Again.")
-
 	return render_template('login.html', form=form)
 
 
@@ -395,19 +292,15 @@ def dashboard():
 		name_to_update.favorite_color = request.form['favorite_color']
 		name_to_update.username = request.form['username']
 		name_to_update.about_author = request.form['about_author']
-		
 		# Check for profile pic
 		if request.files['profile_pic']:
 			name_to_update.profile_pic = request.files['profile_pic']
-
 			# Grab Image Name
 			pic_filename = secure_filename(name_to_update.profile_pic.filename)
 			# Set UUID
 			pic_name = str(uuid.uuid1()) + "_" + pic_filename
 			# Save That Image
 			saver = request.files['profile_pic']
-			
-
 			# Change it to a string to save to db
 			name_to_update.profile_pic = pic_name
 			try:
@@ -434,7 +327,6 @@ def dashboard():
 				name_to_update = name_to_update,
 				id = id)
 
-
 # Create Logout
 @app.route('/logout', methods=['GET', 'POST'])
 @login_required
@@ -443,19 +335,16 @@ def logout():
 	flash("You have been Logged Out! Thanks for stopping by")
 	return redirect(url_for('login'))
 
-
 # --------------------------------------------------------------
+# NavBar and Search Function
 
 #Pass Stuff to NavBar
-
 @app.context_processor
 def base():
 	form = SearchForm()
 	return dict(form=form)
 
-
 #Create Search Function
-
 @app.route('/search', methods=['POST'])
 def search():
     form = SearchForm()
@@ -472,10 +361,8 @@ def search():
             searched=searched,
             posts=posts)
 
-
-# -----------------------------------------------------
-
-# Create Admin Page
+# ---------------------------------------------------------------------------
+# Create Admin Dummy Page
 
 # Create a route decorator
 @app.route('/admin')
@@ -487,6 +374,19 @@ def admin():
 	else:
 		flash("Sorry must be admin to access the Admin page")
 		return redirect(url_for('dashboard'))
+	
+# ------------------------------------------------------------------------
+# Create Custom Error Page
+
+#Invalid Error
+@app.errorhandler(404)
+def page_not_found(e):
+	return render_template("404.html"), 404
+
+#Internal Server Error
+@app.errorhandler(500)
+def internal_server_error(e):
+	return render_template("500.html"), 500
 
 # --------------------------------------------------------------
 # Models
@@ -502,7 +402,6 @@ class Posts(db.Model):
 	# Foreign Key to Link Users (refer to primary key of the user)
 	poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
 
-
 # Create Model
 class Users(db.Model, UserMixin):
 	id = db.Column(db.Integer, primary_key=True)
@@ -517,8 +416,6 @@ class Users(db.Model, UserMixin):
 	password_hash = db.Column(db.String(500))
 	# User Can Have Many Posts
 	posts = db.relationship('Posts', backref='poster')
-
-
 
 	@property
 	def password(self):

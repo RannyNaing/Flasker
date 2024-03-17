@@ -5,8 +5,8 @@
 body {
     font-family: 'Roboto', sans-serif;
     font-size: 16px; /* Base font size */
-    color: #333;
-    background-color: #f4f4f4;
+    color: #464646;
+    background-color: #ffffff;
     line-height: 1.6;
 }
 
@@ -86,13 +86,16 @@ p {
 
 /* Hover effect for card */
 .card:hover {
-    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    box-shadow: 0 15px 25px rgba(0,0,0,0.2);
 }
 
 /* Spacing and Alignment Helpers */
 .mb-5, .my-5 { margin-bottom: 3rem !important; } /* More space at the bottom */
 .text-center { text-align: center; } /* Center text */
 
+.alert:hover {
+    box-shadow: 0 15px 25px rgba(0,0,0,0.2);
+}
 
 
 /* Form Enhancement */
@@ -100,7 +103,7 @@ p {
     border: 2px solid #e1e1e1; /* Solid border makes the input stand out more */
     padding: 10px 15px; /* More padding for better readability */
     font-size: 16px; /* Slightly larger font size for ease of reading */
-    border-radius: 8px; /* Rounded borders for modern look */
+    border-radius: 12px; /* Rounded borders for modern look */
     transition: border-color 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
 }
 
