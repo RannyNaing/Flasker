@@ -21,10 +21,10 @@ ckeditor = CKEditor(app)
 
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
 
 # Heroku Postgressql
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://exxzdfhdskiddh:f75c935919f02f071192e38961ecd83368ec508a8533cd214ee37bd3680c50a1@ec2-44-220-7-157.compute-1.amazonaws.com:5432/d261tl97dqem1o"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://exxzdfhdskiddh:f75c935919f02f071192e38961ecd83368ec508a8533cd214ee37bd3680c50a1@ec2-44-220-7-157.compute-1.amazonaws.com:5432/d261tl97dqem1o"
 
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
