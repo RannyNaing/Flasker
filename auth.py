@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, redirect, url_for, flash, request
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
+from flask_login import login_user, LoginManager, login_required, logout_user, current_user
 from werkzeug.security import check_password_hash
-from models import db, Posts, Users
+from models import db, Users
 from webforms import LoginForm, UserForm
 from werkzeug.utils import secure_filename
 import uuid as uuid

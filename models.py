@@ -1,16 +1,11 @@
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime
-from flask import Flask, render_template, flash, request, redirect, url_for, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from flask_migrate import Migrate
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
-from flask_login import UserMixin, login_user, LoginManager, login_required, logout_user, current_user
-from webforms import LoginForm, UserForm, PostForm, SearchForm
-from flask_ckeditor import CKEditor
-from werkzeug.utils import secure_filename
+from flask_login import UserMixin
 import uuid as uuid
-import os
 
 db = SQLAlchemy()
 
