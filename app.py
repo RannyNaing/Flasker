@@ -1,4 +1,4 @@
-from flask import Flask, render_template, flash, request, redirect, url_for, jsonify
+from flask import Flask, render_template, request, jsonify
 from flask_migrate import Migrate
 from flask_login import LoginManager, current_user
 from webforms import SearchForm
