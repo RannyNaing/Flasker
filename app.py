@@ -10,6 +10,13 @@ from werkzeug.utils import secure_filename
 import uuid as uuid
 import os
 
+from models import db, Posts, Users
+
+
+from blog_posts import blog_posts
+
+
+from auth import auth
 #Create an instance of Flask
 app = Flask(__name__)
 # CK Editor
@@ -21,10 +28,10 @@ ckeditor = CKEditor(app)
 
 # MYSQL DB
 # app.config['SQLALCHEMY_DATABASE_URI'] = "mysql://username:password@localhost/db_name"
-# app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
+app.config['SQLALCHEMY_DATABASE_URI'] = "mysql+pymysql://root:root@localhost/our_users"
 
 # Heroku Postgressql
-app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://capkiavrlzugwv:84174ea3b5ab7e014512e402a803c22b26ed6efdaee28957cc1e10ebadbf21a9@ec2-100-24-250-155.compute-1.amazonaws.com:5432/d3tq36bjv37m35"
+# app.config['SQLALCHEMY_DATABASE_URI'] = "postgresql+psycopg2://capkiavrlzugwv:84174ea3b5ab7e014512e402a803c22b26ed6efdaee28957cc1e10ebadbf21a9@ec2-100-24-250-155.compute-1.amazonaws.com:5432/d3tq36bjv37m35"
 # Secret Key!!
 app.config['SECRET_KEY'] = "super_secret_key"
 
@@ -32,18 +39,23 @@ UPLOAD_FOLDER = 'static/images'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 # Initialize database
-db = SQLAlchemy(app)
+# db = SQLAlchemy(app)
+db.init_app(app)
 migrate = Migrate(app, db)
 app.app_context().push()
 
 # Flask Login Stuff
 login_manager = LoginManager()
 login_manager.init_app(app)
-login_manager.login_view = 'login'
+login_manager.login_view = 'auth.login'
 
 @login_manager.user_loader
 def load_user(user_id):
 	return Users.query.get(int(user_id))
+
+
+app.register_blueprint(blog_posts)
+app.register_blueprint(auth)
 
 # ----------------------------------------------------------------------------------------
 
@@ -68,271 +80,6 @@ def api_posts():
     posts = Posts.query.all()
     posts_data = [{'title': post.title, 'content': post.content} for post in posts]
     return jsonify(posts_data)
-
-# ------------------------------------------------------------
-# Blog Posts
-
-# Blog Posts Pge
-@app.route('/posts')
-def posts():
-	# Grab all the posts from database
-	posts = Posts.query.order_by(Posts.date_posted)
-	return render_template("posts.html", posts = posts)
-
-# Individual Blog Post
-@app.route('/posts/<int:id>')
-def post(id):
-	post = Posts.query.get_or_404(id)
-	return render_template('post.html', post = post)
-
-#Add Post Page
-@app.route('/add-post', methods=['GET', 'POST'])
-@login_required
-def add_post():
-	form = PostForm()
-	if form.validate_on_submit():
-		poster = current_user.id
-		post = Posts(title= form.title.data,
-			content = form.content.data,
-			poster_id = poster,
-			slug = form.slug.data)
-		form.title.data = ''
-		form.content.data = ''
-		form.slug.data = ''
-		# Add data to database
-		db.session.add(post)
-		db.session.commit()
-		#Return a Message
-		flash("Blog Post Submitted Successfully")
-	# Redirect to the webpae
-	return render_template("add_post.html", form = form)
-
-# Editting Post
-@app.route('/posts/edit/<int:id>', methods=['GET', 'POST'])
-@login_required
-def edit_post(id):
-	post = Posts.query.get_or_404(id)
-	form = PostForm()
-	if form.validate_on_submit():
-		post.title = form.title.data
-		# post.author = form.author.data
-		post.slug = form.slug.data
-		post.content = form.content.data
-		# Update database
-		db.session.add(post)
-		db.session.commit()
-		flash("Post Has Been Updated")
-		return redirect(url_for('post', id = post.id))
-	if current_user.id == post.poster_id or current_user.id == 1:
-		form.title.data = post.title
-		# form.author.data = post.author
-		form.slug.data = post.slug
-		form.content.data = post.content
-		return render_template('edit_post.html', form = form)
-	else:
-		flash("You Aren't Authorzed to Edit This Post")
-		posts = Posts.query.order_by(Posts.date_posted)
-		return render_template("posts.html", posts = posts)
-
-# Delete Post
-@app.route('/posts/delete/<int:id>')
-@login_required
-def delete_post(id):
-	post_to_delete = Posts.query.get_or_404(id)
-	id = current_user.id
-	if post_to_delete.poster is None or id == post_to_delete.poster.id or id == 1:
-		try:
-			db.session.delete(post_to_delete)
-			db.session.commit()
-			#Return Message
-			flash("Blog Post was DELETED")
-			posts = Posts.query.order_by(Posts.date_posted)
-			return render_template("posts.html", posts = posts)
-		except:
-			# Return Error message
-			flash("There was a problem deleting post. Try again....")
-			posts = Posts.query.order_by(Posts.date_posted)
-			return render_template("posts.html", posts = posts)
-	else:
-		flash("You are not authorized to Delete That Post. Try again....")
-		posts = Posts.query.order_by(Posts.date_posted)
-		return render_template("posts.html", posts = posts)
-
-# ----------------------------------------------------------------------------
-
-# Update Database Record of the User
-@app.route('/update/<int:id>', methods=['POST', 'GET'])
-@login_required
-def update(id):
-	form = UserForm()
-	id = current_user.id
-	name_to_update = Users.query.get_or_404(id)
-	if request.method == "POST":
-		name_to_update.name = request.form['name']
-		name_to_update.email = request.form['email']
-		name_to_update.favorite_color = request.form['favorite_color']
-		name_to_update.username = request.form['username']
-		name_to_update.about_author = request.form['about_author']
-		# Check for profile pic
-		if request.files['profile_pic']:
-			name_to_update.profile_pic = request.files['profile_pic']
-			# Grab Image Name
-			pic_filename = secure_filename(name_to_update.profile_pic.filename)
-			# Set UUID
-			pic_name = str(uuid.uuid1()) + "_" + pic_filename
-			# Save That Image
-			saver = request.files['profile_pic']
-			# Change it to a string to save to db
-			name_to_update.profile_pic = pic_name
-			try:
-				db.session.commit()
-				saver.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-				flash("User Updated Successfully!")
-				return render_template("update.html", 
-					form=form,
-					name_to_update = name_to_update)
-			except:
-				flash("Error!  Looks like there was a problem...try again!")
-				return render_template("update.html", 
-					form=form,
-					name_to_update = name_to_update)
-		else:
-			db.session.commit()
-			flash("User Updated Successfully!")
-			return render_template("update.html", 
-				form=form, 
-				name_to_update = name_to_update)
-	else:
-		return render_template("update.html", 
-				form=form,
-				name_to_update = name_to_update,
-				id = id)
-
-# ------------------------------------------------------------------------------------------
-
-# Add User
-@app.route('/user/add', methods=['GET', 'POST'])
-def add_user():
-	name = None
-	form = UserForm()
-	if form.validate_on_submit():
-		user = Users.query.filter_by(email=form.email.data).first()
-		if user is None:
-			#Hash password
-			hashed_pw = generate_password_hash(form.password_hash.data)
-			user = Users(name = form.name.data, username= form.username.data, 
-							email = form.email.data, favorite_color= form.favorite_color.data, 
-							password_hash = hashed_pw)
-			db.session.add(user)
-			db.session.commit()
-		name = form.name.data
-		form.name.data=''
-		form.username.data=''
-		form.email.data=''
-		form.favorite_color.data=''
-		form.password_hash.data = ''
-		flash("User added Successfully")
-	our_users = Users.query.order_by(Users.date_added)
-	return render_template("add_user.html", form=form, name=name, our_users = our_users)
-
-# Delete Users
-@app.route('/delete/<int:id>')
-@login_required
-def delete(id):
-	if id == current_user.id:
-		user_to_delete = Users.query.get_or_404(id)
-		name = None
-		form = UserForm()
-		try:
-			db.session.delete(user_to_delete)
-			db.session.commit()
-			flash("User Deleted Successfully")
-			our_users = Users.query.order_by(Users.date_added)
-			return render_template("add_user.html", form=form, name=name, our_users = our_users)
-		except:
-			flash("Whoops!!! There was a problem deleting the user")
-			return render_template("add_user.html", form=form, name=name, our_users = our_users)
-	else:
-		flash("Sorry, You can't delete that user!")
-		return redirect(url_for('dashboard'))
-
-# --------------------------------------------------------------------------------------------
-
-
-# Create a Login Page
-@app.route('/login', methods=['GET', 'POST'])
-def login():
-	form = LoginForm()
-	if form.validate_on_submit():
-		user = Users.query.filter_by(username=form.username.data).first()
-		if user:
-			# Check hash
-			if check_password_hash(user.password_hash, form.password.data):
-				login_user(user)
-				flash("Login Successfully")
-				return redirect(url_for('dashboard'))
-			else:
-				flash("Wrong Password - Try Again!")
-		else:
-			flash("That User Does not Exist!!! Please Try Again.")
-	return render_template('login.html', form=form)
-
-
-# Create Dashboard Page
-@app.route('/dashboard', methods=['GET', 'POST'])
-@login_required
-def dashboard():
-	form = UserForm()
-	id = current_user.id
-	name_to_update = Users.query.get_or_404(id)
-	if request.method == "POST":
-		name_to_update.name = request.form['name']
-		name_to_update.email = request.form['email']
-		name_to_update.favorite_color = request.form['favorite_color']
-		name_to_update.username = request.form['username']
-		name_to_update.about_author = request.form['about_author']
-		# Check for profile pic
-		if request.files['profile_pic']:
-			name_to_update.profile_pic = request.files['profile_pic']
-			# Grab Image Name
-			pic_filename = secure_filename(name_to_update.profile_pic.filename)
-			# Set UUID
-			pic_name = str(uuid.uuid1()) + "_" + pic_filename
-			# Save That Image
-			saver = request.files['profile_pic']
-			# Change it to a string to save to db
-			name_to_update.profile_pic = pic_name
-			try:
-				db.session.commit()
-				saver.save(os.path.join(app.config['UPLOAD_FOLDER'], pic_name))
-				flash("User Updated Successfully!")
-				return render_template("dashboard.html", 
-					form=form,
-					name_to_update = name_to_update)
-			except:
-				flash("Error!  Looks like there was a problem...try again!")
-				return render_template("dashboard.html", 
-					form=form,
-					name_to_update = name_to_update)
-		else:
-			db.session.commit()
-			flash("User Updated Successfully!")
-			return render_template("dashboard.html", 
-				form=form, 
-				name_to_update = name_to_update)
-	else:
-		return render_template("dashboard.html", 
-				form=form,
-				name_to_update = name_to_update,
-				id = id)
-
-# Create Logout
-@app.route('/logout', methods=['GET', 'POST'])
-@login_required
-def logout():
-	logout_user()
-	flash("You have been Logged Out! Thanks for stopping by")
-	return redirect(url_for('login'))
 
 # --------------------------------------------------------------
 # NavBar and Search Function
@@ -359,73 +106,3 @@ def search():
             form=form,
             searched=searched,
             posts=posts)
-
-# ---------------------------------------------------------------------------
-# Create Admin Dummy Page
-
-# Create a route decorator
-@app.route('/admin')
-@login_required
-def admin():
-	id = current_user.id
-	if id == 1:
-		return render_template("admin.html")
-	else:
-		flash("Sorry must be admin to access the Admin page")
-		return redirect(url_for('dashboard'))
-	
-# ------------------------------------------------------------------------
-# Create Custom Error Page
-
-#Invalid Error
-@app.errorhandler(404)
-def page_not_found(e):
-	return render_template("404.html"), 404
-
-#Internal Server Error
-@app.errorhandler(500)
-def internal_server_error(e):
-	return render_template("500.html"), 500
-
-# --------------------------------------------------------------
-# Models
-
-# Create a Blog Post model
-class Posts(db.Model):
-	id = db.Column(db.Integer, primary_key=True)
-	title = db.Column(db.String(225))
-	content = db.Column(db.Text)
-	# author = db.Column(db.String(55))
-	date_posted = db.Column(db.DateTime, default=datetime.utcnow)
-	slug = db.Column(db.String(55))
-	# Foreign Key to Link Users (refer to primary key of the user)
-	poster_id = db.Column(db.Integer, db.ForeignKey('users.id'))
-
-# Create Model
-class Users(db.Model, UserMixin):
-	id = db.Column(db.Integer, primary_key=True)
-	username = db.Column(db.String(20), nullable=False, unique=True)
-	name = db.Column(db.String(200), nullable = False)
-	email = db.Column(db.String(200), nullable= False, unique = True)
-	favorite_color = db.Column(db.String(120))
-	about_author = db.Column(db.Text(), nullable=True)
-	date_added = db.Column(db.DateTime, default=datetime.utcnow)
-	profile_pic = db.Column(db.String(255), nullable=True)
-	# Do some password stuff
-	password_hash = db.Column(db.String(500))
-	# User Can Have Many Posts
-	posts = db.relationship('Posts', backref='poster')
-
-	@property
-	def password(self):
-		raise AttributeError('password is not a readable attribute')
-
-	@password.setter
-	def password(self, password):
-		self.password_hash = generate_password_hash(password)
-
-	def verify_password(self, password):
-		return check_password_hash(self.password_hash, password)
-
-	def __repr__(self):
-		return '<Name %r>' % self.name

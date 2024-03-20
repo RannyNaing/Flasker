@@ -8,30 +8,30 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('add_post') }}">Add Blog Post</a>
+          <a class="nav-link" href="{{ url_for('blog_posts.add_post') }}">Add Blog Post</a>
         </li>
 
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('posts') }}">Posts</a>
+          <a class="nav-link" href="{{ url_for('blog_posts.posts') }}">Posts</a>
         </li>
 
         {% if current_user.is_authenticated %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('dashboard') }}">Dashboard</a>
+          <a class="nav-link" href="{{ url_for('auth.dashboard') }}">Dashboard</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('logout') }}">Logout</a>
+          <a class="nav-link" href="{{ url_for('auth.logout') }}">Logout</a>
         </li>
         {% if current_user.id == 1 %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('admin') }}">Admin</a>
+          <a class="nav-link" href="{{ url_for('auth.admin') }}">Admin</a>
         </li>
         {% endif %} {% else %}
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('add_user') }}">Register</a>
+          <a class="nav-link" href="{{ url_for('auth.add_user') }}">Register</a>
         </li>
         <li class="nav-item">
-          <a class="nav-link" href="{{ url_for('login') }}">Login</a>
+          <a class="nav-link" href="{{ url_for('auth.login') }}">Login</a>
         </li>
 
         {% endif %}
