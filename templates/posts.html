@@ -10,6 +10,16 @@
 
 <h1> Blog Posts </h1>
 <br>
+<form action="{{ url_for('blog_posts.posts') }}" method="get">
+    <label for="order">Order by:</label>
+    <select name="order" id="order" onchange="this.form.submit()">
+        <option value="asc" {% if order == 'asc' %}selected{% endif %}>Date Ascending</option>
+        <option value="desc" {% if order == 'desc' %}selected{% endif %}>Date Descending</option>
+    </select>
+</form>
+
+<!-- Your posts display logic here -->
+
 <br>
 
 {% for post in posts %}

@@ -11,9 +11,12 @@ blog_posts = Blueprint('blog_posts', __name__)
 # Blog Posts Pge
 @blog_posts.route('/posts')
 def posts():
-	# Grab all the posts from database
-	posts = Posts.query.order_by(Posts.date_posted)
-	return render_template("posts.html", posts = posts)
+	order = request.args.get('order', 'asc')
+	if order == 'desc':
+		posts = Posts.query.order_by(Posts.date_posted.desc())
+	else:
+		posts = Posts.query.order_by(Posts.date_posted.asc())
+	return render_template("posts.html", posts=posts, order=order)
 
 # Individual Blog Post
 @blog_posts.route('/posts/<int:id>')
