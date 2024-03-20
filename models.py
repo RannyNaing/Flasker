@@ -30,7 +30,7 @@ class Users(db.Model, UserMixin):
 	username = db.Column(db.String(20), nullable=False, unique=True)
 	name = db.Column(db.String(200), nullable = False)
 	email = db.Column(db.String(200), nullable= False, unique = True)
-	favorite_color = db.Column(db.String(120))
+	# favorite_color = db.Column(db.String(120))
 	about_author = db.Column(db.Text(), nullable=True)
 	date_added = db.Column(db.DateTime, default=datetime.utcnow)
 	profile_pic = db.Column(db.String(255), nullable=True)

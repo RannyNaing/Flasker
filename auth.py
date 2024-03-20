@@ -32,7 +32,7 @@ def update(id):
 	if request.method == "POST":
 		name_to_update.name = request.form['name']
 		name_to_update.email = request.form['email']
-		name_to_update.favorite_color = request.form['favorite_color']
+		# name_to_update.favorite_color = request.form['favorite_color']
 		name_to_update.username = request.form['username']
 		name_to_update.about_author = request.form['about_author']
 		# Check for profile pic
@@ -83,7 +83,7 @@ def add_user():
 			#Hash password
 			hashed_pw = generate_password_hash(form.password_hash.data)
 			user = Users(name = form.name.data, username= form.username.data, 
-							email = form.email.data, favorite_color= form.favorite_color.data, 
+							email = form.email.data, #_color= form.favorite_color.data, 
 							password_hash = hashed_pw)
 			db.session.add(user)
 			db.session.commit()
@@ -91,7 +91,7 @@ def add_user():
 		form.name.data=''
 		form.username.data=''
 		form.email.data=''
-		form.favorite_color.data=''
+		# form.favorite_color.data=''
 		form.password_hash.data = ''
 		flash("User added Successfully")
 	our_users = Users.query.order_by(Users.date_added)
@@ -150,7 +150,7 @@ def dashboard():
 	if request.method == "POST":
 		name_to_update.name = request.form['name']
 		name_to_update.email = request.form['email']
-		name_to_update.favorite_color = request.form['favorite_color']
+		# name_to_update.favorite_color = request.form['favorite_color']
 		name_to_update.username = request.form['username']
 		name_to_update.about_author = request.form['about_author']
 		# Check for profile pic
