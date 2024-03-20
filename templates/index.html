@@ -1,5 +1,7 @@
 {% extends 'base.html' %} {% block content %}
 
-<h1>Hello, Welcome to the Blog App</h1>
+<h1>Hello, Welcome to the FlaskerBlogger</h1>
+<p>Here, you can post your blog for the world to see.</p>
+<img src="{{ url_for('static', filename='images/Blog_image.jpeg') }}" alt="" width="1300">
 
 {% endblock %}
