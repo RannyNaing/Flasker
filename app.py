@@ -4,6 +4,7 @@ from flask_login import LoginManager, current_user
 from webforms import SearchForm
 from flask_ckeditor import CKEditor
 import uuid as uuid
+from flask_cors import CORS, cross_origin
 
 from models import db, Posts, Users
 
@@ -52,6 +53,8 @@ def load_user(user_id):
 app.register_blueprint(blog_posts)
 app.register_blueprint(auth)
 
+CORS(app)
+
 # ----------------------------------------------------------------------------------------
 
 # Home Page
@@ -64,6 +67,7 @@ def index():
 
 # Simple API to get posts and add a new post
 @app.route('/api/posts', methods=['GET', 'POST'])
+@cross_origin(origin='example.com')
 def api_posts():
     if request.method == 'POST':
         # Assume JSON data contains 'title' and 'content'
