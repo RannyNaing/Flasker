@@ -6,7 +6,7 @@ body {
     font-family: 'Roboto', sans-serif;
     font-size: 16px; /* Base font size */
     color: #464646;
-    background-color: #ffffff;
+    background: linear-gradient(to bottom, #6dc9ff, #ff7f7f);
     line-height: 1.6;
 }
 

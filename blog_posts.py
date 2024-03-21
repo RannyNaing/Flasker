@@ -8,7 +8,7 @@ from models import db, Posts
 blog_posts = Blueprint('blog_posts', __name__)
 
 
-# Blog Posts Pge
+# Blog Posts Page
 @blog_posts.route('/posts')
 def posts():
 	order = request.args.get('order', 'asc')
